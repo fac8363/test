@@ -1,0 +1,1173 @@
+<!DOCTYPE html>
+<html lang="en">
+<head>
+    <meta charset="UTF-8">
+    <meta name="viewport" content="width=device-width, initial-scale=1.0, maximum-scale=1.0, user-scalable=no">
+    <meta name="apple-mobile-web-app-capable" content="yes">
+    <meta name="apple-mobile-web-app-status-bar-style" content="default">
+    <meta name="theme-color" content="#fdf8e4">
+    <title>Branch Out - Skill Trees</title>
+    
+    <script>
+        if (localStorage.getItem('branchOutTheme') === 'dark') {
+            document.documentElement.setAttribute('data-theme', 'dark');
+            document.querySelector('meta[name="theme-color"]').setAttribute('content', '#111111');
+        }
+    </script>
+
+    <style>
+        :root {
+            /* --- LIGHT THEME (DEFAULT) --- */
+            --bg: #fdf8e4;           
+            --card-bg: #ffffff;      
+            --text: #2c3e50;         
+            --subtext: #7f8c8d;      
+            --dot-color: rgba(0, 0, 0, 0.05);
+            --modal-bg: rgba(255, 255, 255, 0.8);
+            --header-bg: rgba(253, 248, 228, 0.85);
+            --btn-bg: rgba(255, 255, 255, 0.9);
+            --border-color: #eeeeee;
+            
+            --theme-left: #ff7043; 
+            --theme-right: #f06292;
+            --unlocked-accent: #00e676;
+            --star-gold: #f1c40f;
+        }
+
+        [data-theme="dark"] {
+            /* --- DARK THEME OVERRIDES --- */
+            --bg: #111111;
+            --card-bg: #1a1a1a;
+            --text: #eeeeee;
+            --subtext: #888888;
+            --dot-color: rgba(255, 255, 255, 0.05);
+            --modal-bg: rgba(17, 17, 17, 0.8);
+            --header-bg: rgba(17, 17, 17, 0.9);
+            --btn-bg: rgba(0, 0, 0, 0.8);
+            --border-color: #333333;
+        }
+
+        html, body {
+            margin: 0; padding: 0; width: 100vw; height: 100dvh; 
+            overflow: hidden; background-color: var(--bg); color: var(--text);
+            font-family: 'Segoe UI', -apple-system, BlinkMacSystemFont, Roboto, sans-serif;
+            background-image: radial-gradient(var(--dot-color) 1px, transparent 1px);
+            background-size: 20px 20px; transition: background-color 0.3s, color 0.3s;
+        }
+
+        /* --- LANDING MENU --- */
+        .landing-menu {
+            position: fixed; inset: 0; z-index: 5000; display: flex; flex-direction: column; justify-content: center; align-items: center;
+            background-color: var(--bg); background-image: radial-gradient(var(--dot-color) 1px, transparent 1px);
+            background-size: 20px 20px; transition: opacity 0.4s ease, visibility 0.4s, background-color 0.3s;
+        }
+        .landing-menu.hidden { opacity: 0; visibility: hidden; pointer-events: none; }
+        .app-title-main { font-size: 3.5rem; font-weight: 900; color: var(--text); margin: 0 0 10px 0; letter-spacing: -1px; text-align: center; transition: color 0.3s;}
+        .app-tagline { font-size: 1.1rem; color: var(--subtext); margin: 0 0 40px 0; font-style: italic; text-align: center; transition: color 0.3s;}
+        
+        .menu-card {
+            background: var(--modal-bg); backdrop-filter: blur(10px); padding: 30px; border-radius: 16px; border: 1px solid var(--border-color);
+            box-shadow: 0 10px 30px rgba(0,0,0,0.1); display: flex; flex-direction: column; gap: 20px; width: 90%; max-width: 320px; transition: background 0.3s, border-color 0.3s;
+        }
+        .menu-select {
+            background: var(--card-bg); color: var(--text); font-size: 1.1rem; padding: 12px 15px; border: 2px solid var(--border-color); border-radius: 8px; 
+            cursor: pointer; outline: none; font-weight: bold; width: 100%; transition: background 0.3s, color 0.3s, border-color 0.3s;
+        }
+        .btn-start {
+            background: var(--text); color: var(--bg); border: none; padding: 15px; border-radius: 8px; font-size: 1.2rem; font-weight: bold; cursor: pointer;
+            transition: transform 0.1s, background 0.3s, color 0.3s; text-transform: uppercase; letter-spacing: 1px;
+        }
+        .btn-start:active { transform: scale(0.98); opacity: 0.8; }
+        .btn-faq { background: transparent; color: var(--subtext); border: none; padding: 10px; font-size: 0.9rem; cursor: pointer; text-decoration: underline; margin-top: 10px; transition: color 0.2s; }
+        .btn-faq:hover { color: var(--text); }
+
+        /* --- APP CONTAINER --- */
+        .app-container {
+            display: flex; flex-direction: column; width: 100%; height: 100%; opacity: 0; visibility: hidden; transition: opacity 0.4s ease 0.2s;
+        }
+        .app-container.visible { opacity: 1; visibility: visible; }
+
+        /* --- HEADER --- */
+        .app-header {
+            background: var(--header-bg); backdrop-filter: blur(12px); padding: 15px 20px; z-index: 100;
+            border-bottom: 1px solid var(--border-color); box-shadow: 0 4px 15px rgba(0,0,0,0.05); flex-shrink: 0;
+            display: flex; justify-content: space-between; align-items: center; transition: background 0.3s, border-color 0.3s;
+        }
+        .header-select {
+            background: transparent; border: none; font-size: 1.2rem; font-weight: 800; text-transform: uppercase; color: var(--text); letter-spacing: 1px; 
+            cursor: pointer; outline: none; text-align: center; transition: color 0.3s; max-width: 60vw; text-overflow: ellipsis;
+        }
+        .header-select:hover { color: var(--theme-left); }
+        .btn-back { background: var(--card-bg); border: 1px solid var(--border-color); padding: 6px 12px; border-radius: 6px; font-weight: bold; color: var(--text); cursor: pointer; transition: background 0.3s, color 0.3s, border-color 0.3s;}
+        .btn-back:active { transform: scale(0.95); }
+
+        /* --- THE VIEWPORT --- */
+        .tree-viewport { flex: 1; width: 100%; position: relative; overflow: hidden; cursor: grab; }
+        .tree-viewport:active { cursor: grabbing; }
+
+        /* --- ABSOLUTE PAN ENGINE --- */
+        .forest {
+            display: flex; gap: 80px; align-items: flex-end; justify-content: flex-start;
+            position: absolute; bottom: 50px; left: 50vw; width: max-content; transform-origin: bottom left; 
+        }
+
+        .parallel-row { display: flex; gap: 60px; align-items: flex-end; position: relative; width: max-content; }
+        .parallel-col { position: relative; display: flex; flex-direction: column-reverse; align-items: center; z-index: 1; transition: z-index 0s; }
+        .parallel-col.active-pillar { z-index: 50; }
+
+        /* --- BLOOM ENGINE --- */
+        .root-node-wrapper { position: relative; z-index: 20; transition: all 0.4s cubic-bezier(0.25, 1, 0.5, 1); }
+        .inactive-pillar .root-node-wrapper { opacity: 0.5; transform: scale(0.9); cursor: pointer; filter: grayscale(100%); }
+        .inactive-pillar .root-node-wrapper:hover { opacity: 0.8; transform: scale(0.95); }
+        .active-pillar .root-node-wrapper { opacity: 1; transform: scale(1); filter: grayscale(0%); }
+
+        .upper-branches {
+            position: absolute; bottom: 100%; left: 50%; transform: translateX(-50%); display: flex; flex-direction: column-reverse; align-items: center;
+            padding-bottom: 30px; z-index: 10; opacity: 0; visibility: hidden; pointer-events: none; margin-bottom: -30px; transition: all 0.4s cubic-bezier(0.25, 1, 0.5, 1);
+        }
+        .active-pillar .upper-branches { opacity: 1; visibility: visible; pointer-events: auto; margin-bottom: 0; }
+
+        /* --- BRANCHING (No lines) --- */
+        .branch-row { display: flex; gap: 30px; position: relative; margin-bottom: 30px; justify-content: center; }
+        .branch-col { position: relative; display: flex; flex-direction: column-reverse; align-items: center; gap: 30px; }
+        .foundation-row { display: flex; gap: 30px; position: relative; justify-content: center; }
+
+        /* --- CARDS & BADGES --- */
+        .node-card {
+            background: var(--card-bg); width: 240px; padding: 15px; border-radius: 12px; border: 2px solid var(--border-color); position: relative; z-index: 2; 
+            transition: transform 0.2s ease, opacity 0.5s ease, filter 0.5s ease, background 0.3s, border-color 0.3s; cursor: default; flex-shrink: 0; margin: 0; box-shadow: 0 4px 15px rgba(0,0,0,0.05);
+        }
+        .node-card:active { transform: scale(0.98); }
+        .boss-card, .gateway-card { border-width: 3px !important; }
+        .stacked-node { margin-bottom: 30px; }
+
+        .lock-badge {
+            position: absolute; top: -15px; left: 50%; transform: translateX(-50%); background: var(--card-bg); color: var(--text); padding: 4px 12px; border-radius: 20px; font-weight: bold; font-size: 0.8rem; border: 2px solid var(--border-color); box-shadow: 0 4px 10px rgba(0,0,0,0.1); z-index: 10; white-space: nowrap; transition: background 0.3s, color 0.3s, border-color 0.3s; display: flex; align-items: center; gap: 4px;
+        }
+        [data-theme="dark"] .lock-badge { box-shadow: 0 4px 10px rgba(0,0,0,0.5); }
+
+        .theme-easy { border-color: #00e676; }
+        .theme-easy .title { color: #00e676; }
+        .theme-med { border-color: #ffb300; }
+        .theme-med .title { color: #ffb300; }
+        .theme-hard { border-color: #ff5252; }
+        .theme-hard .title { color: #ff5252; }
+        .title { font-weight: bold; text-transform: uppercase; font-size: 0.9rem; margin-bottom: 15px; text-align: center; }
+
+        /* --- FOG OF WAR --- */
+        .dist-locked-1 { opacity: 0.5; filter: grayscale(100%); }
+        .dist-locked-2 { opacity: 0.15; filter: blur(3px) grayscale(100%); }
+        .dist-locked-3 { opacity: 0; pointer-events: none; }
+        .dist-locked-1 input, .dist-locked-1 .counter-btn, .dist-locked-2 input, .dist-locked-2 .counter-btn { pointer-events: none; opacity: 0.4; }
+
+        /* --- BOSS PULSING --- */
+        .unlocked-boss.theme-easy { animation: pulse-easy 2s infinite; }
+        .unlocked-boss.theme-med { animation: pulse-med 2s infinite; }
+        .unlocked-boss.theme-hard { animation: pulse-hard 2s infinite; }
+        @keyframes pulse-easy { 0% { box-shadow: 0 4px 0 #00b25c, 0 0 5px rgba(0,230,118,0.2); } 50% { box-shadow: 0 4px 0 #00b25c, 0 0 25px rgba(0,230,118,0.6); } 100% { box-shadow: 0 4px 0 #00b25c, 0 0 5px rgba(0,230,118,0.2); } }
+        @keyframes pulse-med { 0% { box-shadow: 0 4px 0 #e6a100, 0 0 5px rgba(255,179,0,0.2); } 50% { box-shadow: 0 4px 0 #e6a100, 0 0 25px rgba(255,179,0,0.6); } 100% { box-shadow: 0 4px 0 #e6a100, 0 0 5px rgba(255,179,0,0.2); } }
+        @keyframes pulse-hard { 0% { box-shadow: 0 4px 0 #e04444, 0 0 5px rgba(255,82,82,0.2); } 50% { box-shadow: 0 4px 0 #e04444, 0 0 25px rgba(255,82,82,0.6); } 100% { box-shadow: 0 4px 0 #e04444, 0 0 5px rgba(255,82,82,0.2); } }
+
+        /* --- INPUTS & ICONS --- */
+        .skill-group { margin-bottom: 12px; border-bottom: 1px solid var(--border-color); padding-bottom: 8px; transition: border-color 0.3s; }
+        .skill-group:last-child { border-bottom: none; }
+        .skill-header { display: flex; justify-content: space-between; align-items: center; margin-bottom: 4px; }
+        .skill-name-wrapper { display: flex; align-items: center; gap: 8px; }
+        .skill-name { font-weight: bold; color: var(--text); font-size: 0.85rem; transition: color 0.3s;}
+        .guide-icon { cursor: pointer; font-size: 1.1rem; filter: grayscale(100%); padding: 5px; margin: -5px; transition: all 0.2s; }
+        .guide-icon:active { transform: scale(1.2); filter: grayscale(0%); }
+        .task-rating-display { font-size: 0.75rem; margin-top: -2px; margin-bottom: 4px; letter-spacing: 1px; }
+        .star-filled { color: var(--star-gold); text-shadow: 0 0 5px rgba(255, 215, 0, 0.4); }
+        .star-empty { color: var(--subtext); opacity: 0.5;}
+        .skill-desc { font-size: 0.7rem; color: var(--subtext); line-height: 1.3; font-style: italic; display: block; padding-left: 2px; transition: color 0.3s;}
+        .skill-header input { accent-color: var(--unlocked-accent); cursor: pointer; width: 20px; height: 20px; }
+
+        /* --- FLOATING CONTROLS --- */
+        .floating-controls { position: fixed; bottom: 20px; left: 20px; display: flex; flex-direction: column; gap: 10px; z-index: 100; }
+        .btn-ui {
+            background: var(--btn-bg); color: var(--subtext); border: 2px solid var(--border-color); border-radius: 50%; 
+            width: 45px; height: 45px; display: flex; justify-content: center; align-items: center; cursor: pointer; font-size: 1.5rem; backdrop-filter: blur(5px); font-weight: bold; transition: all 0.3s;
+        }
+        .btn-ui:active { transform: scale(0.9); color: var(--text); border-color: var(--theme-left); }
+        .reset-btn-container { position: fixed; bottom: 20px; right: 20px; z-index: 100; }
+
+        .nav-arrow {
+            position: absolute; top: 50%; transform: translateY(-50%); background: var(--btn-bg); color: var(--subtext); border: 2px solid var(--border-color); 
+            width: 50px; height: 50px; display: flex; justify-content: center; align-items: center; border-radius: 50%; font-size: 1.5rem; font-weight: bold; cursor: pointer;
+            z-index: 100; box-shadow: 0 4px 15px rgba(0,0,0,0.1); backdrop-filter: blur(5px); transition: all 0.3s;
+        }
+        .nav-arrow:active { transform: translateY(-50%) scale(0.9); color: var(--text); border-color: var(--theme-left);}
+        .nav-arrow.left { left: 20px; }
+        .nav-arrow.right { right: 20px; }
+
+        /* --- MODALS --- */
+        .modal-overlay { display: none; position: fixed; top: 0; left: 0; width: 100%; height: 100%; background: rgba(0,0,0,0.6); z-index: 1000; justify-content: center; align-items: flex-end; backdrop-filter: blur(5px); }
+        .modal-content {
+            background: var(--card-bg); border-top: 4px solid var(--theme-left); border-radius: 20px 20px 0 0; padding: 30px; width: 100%; max-height: 80vh; overflow-y: auto; color: var(--text);
+            box-shadow: 0 -10px 30px rgba(0,0,0,0.2); position: relative; animation: slideUp 0.3s ease-out; transition: background 0.3s, color 0.3s;
+        }
+        @keyframes slideUp { from { transform: translateY(100%); } to { transform: translateY(0); } }
+        .modal-title { font-size: 1.4rem; margin-top: 0; border-bottom: 1px solid var(--border-color); padding-bottom: 10px; text-transform: uppercase;}
+        .modal-body { line-height: 1.6; font-size: 0.95rem; color: var(--text); padding-bottom: 20px;}
+        .close-btn { position: absolute; top: 15px; right: 20px; font-size: 2rem; cursor: pointer; color: var(--subtext); }
+
+        #ratingModal { display: none; position: fixed; top: 0; left: 0; width: 100%; height: 100%; background: transparent; z-index: 2000; }
+        #ratingModal .modal-content {
+            position: fixed; background: var(--card-bg); border: 2px solid var(--theme-left); border-radius: 12px; padding: 15px 20px; width: 250px; color: var(--text);
+            box-shadow: 0 10px 30px rgba(0,0,0,0.2); animation: popIn 0.2s ease-out;
+        }
+        @keyframes popIn { from { opacity: 0; transform: scale(0.9) translateY(10px); } to { opacity: 1; transform: scale(1) translateY(0); } }
+        .star-rating { display: flex; flex-direction: row-reverse; justify-content: center; gap: 8px; margin-top: 10px; }
+        .star-rating input { display: none; }
+        .star-rating label { font-size: 2.5rem; color: var(--subtext); opacity: 0.3; cursor: pointer; transition: 0.2s ease; }
+        .star-rating label:hover, .star-rating label:hover ~ label { color: var(--star-gold); opacity: 1; text-shadow: 0 0 15px rgba(255, 215, 0, 0.5); transform: scale(1.1); }
+        .rating-prompt { text-align: center; margin-bottom: 5px; font-size: 0.9rem; color: var(--subtext);}
+        .clear-rating-btn { display: block; text-align: center; margin-top: 15px; color: var(--subtext); font-size: 0.8rem; text-decoration: underline; cursor: pointer; transition: color 0.2s; }
+        .clear-rating-btn:hover { color: var(--theme-hard); }
+
+    </style>
+</head>
+<body>
+
+    <div id="landingMenu" class="landing-menu">
+        <h1 class="app-title-main">🌿 Branch Out</h1>
+        <p class="app-tagline">Choose your path to mastery.</p>
+        
+        <div class="menu-card">
+            <select id="mainMenuSelect" class="menu-select">
+                <option value="kitchen">🔪 Kitchen RPG</option>
+                <option value="crochet">🧶 Yarn Mastery</option>
+                <option value="cocktails">🍸 Mixology</option>
+                <option value="mechanics">🔧 Auto Repair</option>
+                <option value="running">🏃 Couch to 5K</option>
+                <option value="photography">📷 Photography</option>
+                <option value="calligraphy">🖋️ Calligraphy</option>
+            </select>
+            <button class="btn-start" onclick="startJourney()">Begin Journey</button>
+        </div>
+        <button class="btn-faq" onclick="openFAQ()">What is Branch Out?</button>
+    </div>
+
+    <div id="appContainer" class="app-container">
+        <div class="app-header">
+            <button class="btn-back" onclick="returnToMenu()">⬅ Menu</button>
+            <select id="appMenuSelect" class="header-select" onchange="switchProjectFromApp()">
+                <option value="kitchen">🔪 Kitchen RPG</option>
+                <option value="crochet">🧶 Yarn Mastery</option>
+                <option value="cocktails">🍸 Mixology</option>
+                <option value="mechanics">🔧 Auto Repair</option>
+                <option value="running">🏃 Couch to 5K</option>
+                <option value="photography">📷 Photography</option>
+                <option value="calligraphy">🖋️ Calligraphy</option>
+            </select>
+            <div style="width: 70px;"></div> 
+        </div>
+
+        <div class="tree-viewport" id="viewport">
+            <div id="navLeft" class="nav-arrow left" onclick="slideCarousel(-1)" style="display:none;">❮</div>
+            <div id="navRight" class="nav-arrow right" onclick="slideCarousel(1)" style="display:none;">❯</div>
+
+            <div class="forest" id="forest-container"></div>
+        </div>
+
+        <div class="floating-controls">
+            <button class="btn-ui" onclick="changeZoom(0.15)" title="Zoom In">+</button>
+            <button class="btn-ui" onclick="changeZoom(-0.15)" title="Zoom Out">−</button>
+            <button class="btn-ui" onclick="centerCamera()" title="Recenter View" style="font-size: 1.1rem;">🎯</button>
+            <button class="btn-ui" id="themeToggleBtn" onclick="toggleTheme()" title="Toggle Theme" style="font-size: 1.1rem;">🌙</button>
+        </div>
+        <div class="reset-btn-container">
+            <button class="btn-ui" onclick="resetData()" title="Reset Progress" style="font-size: 1.2rem;">↻</button>
+        </div>
+    </div>
+
+    <div class="modal-overlay" id="faqModal" onclick="closeModal('faqModal', event)">
+        <div class="modal-content" onclick="event.stopPropagation()">
+            <span class="close-btn" onclick="closeModal('faqModal')">&times;</span>
+            <h2 class="modal-title">Welcome to Branch Out</h2>
+            <div class="modal-body">
+                <strong>What is this?</strong><br>
+                Branch Out is a real-life skill tree. It breaks down complex hobbies into a visual map of interconnected skills, just like a video game.<br><br>
+                <strong>How to Play:</strong>
+                <ol>
+                    <li><strong>Learn:</strong> Click the book icon (📖) next to a skill for a quick tutorial.</li>
+                    <li><strong>Practice:</strong> Complete the physical task in the real world.</li>
+                    <li><strong>Rate & Grind:</strong> Check the box and rate your execution from 1 to 5 stars. If you score low, you can click the task again to re-rate it once you improve!</li>
+                    <li><strong>Level Up:</strong> The path ahead is hidden by the "Fog of War". You must earn enough total stars on a tier to unlock the door to the next level!</li>
+                </ol>
+                <strong>Navigation:</strong><br>
+                Click and drag anywhere on the background to pan around the skill map. You can also use the Left and Right arrows (or swipe) to quickly jump between the skill trees. The tree closest to the center expands, while the others step aside.
+            </div>
+        </div>
+    </div>
+
+    <div class="modal-overlay" id="guideModal" onclick="closeModal('guideModal', event)">
+        <div class="modal-content" onclick="event.stopPropagation()">
+            <span class="close-btn" onclick="closeModal('guideModal')">&times;</span>
+            <h2 class="modal-title" id="modalTitle">Skill Guide</h2>
+            <div class="modal-body" id="modalBody"></div>
+        </div>
+    </div>
+
+    <div class="modal-overlay" id="ratingModal" onclick="cancelRating(event)">
+        <div class="modal-content" onclick="event.stopPropagation()">
+            <h2 id="ratingTitle" style="text-align: center; margin: 0 0 5px 0; font-size: 1.1rem; border:none; text-transform: uppercase;">Task Complete!</h2>
+            <p class="rating-prompt">Rate your execution:</p>
+            <div class="star-rating">
+                <input type="radio" id="star5" name="rating" value="5" onclick="submitRating(5)"><label for="star5" title="Flawless">★</label>
+                <input type="radio" id="star4" name="rating" value="4" onclick="submitRating(4)"><label for="star4" title="Great">★</label>
+                <input type="radio" id="star3" name="rating" value="3" onclick="submitRating(3)"><label for="star3" title="Good">★</label>
+                <input type="radio" id="star2" name="rating" value="2" onclick="submitRating(2)"><label for="star2" title="Needs Practice">★</label>
+                <input type="radio" id="star1" name="rating" value="1" onclick="submitRating(1)"><label for="star1" title="Burnt it">★</label>
+            </div>
+            <span class="clear-rating-btn" onclick="clearRating()">Clear Saved Rating</span>
+        </div>
+    </div>
+
+    <script>
+        function toggleTheme() {
+            const html = document.documentElement;
+            if (html.getAttribute('data-theme') === 'dark') {
+                html.removeAttribute('data-theme');
+                localStorage.setItem('branchOutTheme', 'light');
+                document.getElementById('themeToggleBtn').innerText = '🌙';
+                document.querySelector('meta[name="theme-color"]').setAttribute('content', '#fdf8e4');
+            } else {
+                html.setAttribute('data-theme', 'dark');
+                localStorage.setItem('branchOutTheme', 'dark');
+                document.getElementById('themeToggleBtn').innerText = '☀️';
+                document.querySelector('meta[name="theme-color"]').setAttribute('content', '#111111');
+            }
+        }
+        window.addEventListener('DOMContentLoaded', () => {
+            if (localStorage.getItem('branchOutTheme') === 'dark') document.getElementById('themeToggleBtn').innerText = '☀️';
+        });
+
+        // --- ALL 7 JOURNEYS DATA ---
+        const projectLibrary = {
+            kitchen: {
+                colors: { left: '#ff7043', right: null }, 
+                name: "🔪 Kitchen RPG",
+                leftTree: {
+                    tier1: {
+                        layout: 'parallel',
+                        paths: [
+                            {
+                                theme: 'theme-easy',
+                                nodes: [
+                                    { id: "c_tool", passReq: 7, title: "Equipment", skills: [{ name: "Cast Iron", desc: "Seasoning & Care"}, { name: "Sharpening", desc: "Whetstone usage" }] },
+                                    { id: "c_boss0", passReq: 4, title: "BOSS: Station Setup", skills: [{name:"Ready for Service", desc:"Tools sharp, pans seasoned"}], isBoss: true }
+                                ],
+                                branches: [
+                                    { nodes: [{ id: "c_blade", passReq: 7, title: "Blade Mastery", skills: [{name:"Mandoline", desc:"Safe uniform slicing"}, {name:"Honing Steel", desc:"Edge alignment"}] }] },
+                                    { nodes: [{ id: "c_machine", passReq: 7, title: "Machine Mastery", skills: [{name:"Food Processor", desc:"Emulsifying blades"}, {name:"Stand Mixer", desc:"Dough hooks & limits"}] }] }
+                                ]
+                            },
+                            {
+                                theme: 'theme-easy',
+                                nodes: [
+                                    { id: "c_prep", passReq: 7, title: "Prep Cook", skills: [{ name: "Knife Skills", desc: "Dice onion, mince garlic"}, { name: "Mise en Place", desc: "Organize ingredients" }] },
+                                    { id: "c_boss1", passReq: 4, title: "BOSS: Perfect Salad", skills: [{name:"Vinaigrette & Cuts", desc:"Uniform veg with basic dressing"}], isBoss: true }
+                                ],
+                                branches: [
+                                    { 
+                                        nodes: [ { id: "c_adv_prep", passReq: 7, title: "Advanced Prep", skills: [{name:"Butchery Basics", desc:"Break down a chicken"}, {name:"Stock Clarification", desc:"Make clear consommé"}] } ],
+                                        branches: [
+                                            { 
+                                                theme: "theme-easy",
+                                                nodes: [
+                                                    { id: "c_adv_prep_easy", passReq: 7, title: "Bulk Prep (Easy)", skills: [{name: "Speed Dicing", desc: "Maintain safety at speed"}, {name: "Yield Optimization", desc: "Minimize waste"}] },
+                                                    { id: "c_batch", passReq: 7, title: "Batch Scaling (Med)", skills: [{name: "Scaling Formulas", desc: "Convert recipes by weight"}, {name: "FIFO Rotation", desc: "First in, first out"}] },
+                                                    { id: "c_yield", passReq: 7, title: "Yield Management (Med)", skills: [{name: "Trim Utilization", desc: "Save scraps for stock"}, {name: "Weight Ratios", desc: "AP vs EP percentage"}] }
+                                                ]
+                                            },
+                                            { 
+                                                theme: "theme-med",
+                                                nodes: [
+                                                    { id: "c_adv_prep_med", passReq: 7, title: "Precision Cuts (Med)", skills: [{name: "Brunoise", desc: "Perfect 3mm cubes"}, {name: "Tourné", desc: "7-sided barrel cuts"}] },
+                                                    { id: "c_chiffonade", passReq: 7, title: "Chiffonade (Med)", skills: [{name: "Ribbon Cuts", desc: "Fine strips"}, {name: "Herb Care", desc: "Avoid bruising leaves"}] },
+                                                    { id: "c_tourne_adv", passReq: 7, title: "Tourné Mastery (Hard)", skills: [{name: "7-Sided Barrel", desc: "Classic French cut"}, {name: "Potato Turning", desc: "Equal sizing"}] },
+                                                    { id: "c_carving", passReq: 7, title: "Garniture (Hard)", skills: [{name: "Radish Roses", desc: "Ice bath blooming"}, {name: "Fluted Mushrooms", desc: "Spiral star cut"}] }
+                                                ]
+                                            }
+                                        ]
+                                    },
+                                    { 
+                                        nodes: [ { id: "c_cold", passReq: 7, title: "Garde Manger", skills: [{name:"Ceviche", desc:"Cure fish in citrus"}, {name:"Terrines", desc:"Layered force-meats"}] } ],
+                                        branches: [
+                                            { 
+                                                theme: "theme-easy",
+                                                nodes: [
+                                                    { id: "c_cold_easy", passReq: 7, title: "Plating (Easy)", skills: [{name: "Composed Salads", desc: "Visual balance"}, {name: "Garnishes", desc: "Micro-greens & oils"}] },
+                                                    { id: "c_sauce_paint", passReq: 7, title: "Sauce Painting (Med)", skills: [{name: "Swooshes", desc: "Spoon drag technique"}, {name: "Purée Dots", desc: "Squeeze bottle precision"}] },
+                                                    { id: "c_architecture", passReq: 7, title: "Verticality (Hard)", skills: [{name: "Tweezer Placement", desc: "Micro-green accuracy"}, {name: "Leaning Elements", desc: "3D height building"}] }
+                                                ]
+                                            },
+                                            { 
+                                                theme: "theme-med",
+                                                nodes: [
+                                                    { id: "c_cold_med", passReq: 7, title: "Curing (Med)", skills: [{name: "Gravlax", desc: "Salt/sugar cure ratio"}, {name: "Cold Smoking", desc: "Maintain < 90°F"}] },
+                                                    { id: "c_brine", passReq: 7, title: "Wet Brining (Med)", skills: [{name: "Equilibrium Brine", desc: "Exact salt percentage"}, {name: "Aromatics", desc: "Toasting spices"}] },
+                                                    { id: "c_dry_cure", passReq: 7, title: "Dry Curing (Hard)", skills: [{name: "Pellicle Formation", desc: "Air drying surface"}, {name: "Humidity Control", desc: "Maintain 60-70% RH"}] }
+                                                ]
+                                            }
+                                        ]
+                                    }
+                                ]
+                            },
+                            {
+                                theme: 'theme-med',
+                                nodes: [
+                                    { id: "c_line", passReq: 7, title: "Line Cook", skills: [{ name: "Heat Control", desc: "Water drop test"}, { name: "Fat Mgmt", desc: "Butter vs Oil smoke points" }] },
+                                    { id: "c_boss2", passReq: 4, title: "BOSS: The Omelette", skills: [{name:"French Omelette", desc:"Pale yellow cigar roll"}], isBoss: true }
+                                ],
+                                branches: [
+                                    { 
+                                        nodes: [ { id: "c_adv_line", passReq: 7, title: "Advanced Line", skills: [{name:"Pan Sauces", desc:"Deglaze, mount with butter"}, {name:"Sautéing", desc:"The wrist-flick toss"}] } ],
+                                        branches: [
+                                            { nodes: [{ id: "c_saucier", passReq: 7, title: "Saucier (Hard)", theme: "theme-hard", skills: [{name:"Reduction", desc:"Nappe consistency"}, {name:"Monter au Beurre", desc:"Mounting with butter"}] }] },
+                                            { nodes: [{ id: "c_poisson", passReq: 7, title: "Poissonnier (Hard)", theme: "theme-hard", skills: [{name:"Skin Seating", desc:"Crispy fish skin"}, {name:"Basting", desc:"Aroser with butter/thyme"}] }] }
+                                        ]
+                                    },
+                                    { 
+                                        nodes: [ { id: "c_grill", passReq: 7, title: "Grill Station", skills: [{name:"Steak Temps", desc:"Touch test for doneness"}, {name:"Resting Meat", desc:"Carryover cooking"}] } ],
+                                        branches: [
+                                            { nodes: [{ id: "c_grill_temp", passReq: 7, title: "Temp Control (Med)", theme: "theme-med", skills: [{name: "Reverse Sear", desc: "Low oven to high sear"}, {name: "Cross-Hatching", desc: "Perfect grill marks"}] }] },
+                                            { nodes: [{ id: "c_grill_wood", passReq: 7, title: "Wood Fire (Hard)", theme: "theme-hard", skills: [{name: "Ember Mgmt", desc: "Cooking on coals"}, {name: "Smoke Profiles", desc: "Apple vs Hickory"}] }] }
+                                        ]
+                                    }
+                                ]
+                            },
+                            {
+                                theme: 'theme-hard',
+                                nodes: [
+                                    { id: "c_pantry", passReq: 7, title: "Pantry Chef", skills: [{ name: "Emulsions", desc: "Mayo & Vinaigrettes"}, { name: "Quick Pickles", desc: "Brine ratios & Balance" }] },
+                                    { id: "c_boss3", passReq: 4, title: "BOSS: Hollandaise", skills: [{name:"Classic Hollandaise", desc:"Temper egg yolks, emulsify butter"}], isBoss: true }
+                                ],
+                                branches: [
+                                    { nodes: [{ id: "c_ferment", passReq: 7, title: "Fermentation", skills: [{name:"Lacto-Ferment", desc:"Sauerkraut & Kimchi"}, {name:"Kombucha", desc:"SCOBY maintenance"}] }] },
+                                    { nodes: [{ id: "c_cure", passReq: 7, title: "Curing & Aging", skills: [{name:"Gravlax", desc:"Salt/sugar cure ratio"}, {name:"Duck Prosciutto", desc:"Dry aging basics"}] }] }
+                                ]
+                            }
+                        ]
+                    }
+                }
+            },
+            
+            crochet: {
+                colors: { left: '#4db6ac', right: '#7986cb' }, 
+                name: "🧶 Yarn Mastery",
+                leftTree: {
+                    tier1: {
+                        layout: 'converge',
+                        roots: [
+                            { id: "hk1", title: "Materials", skills: [{name:"Hook Sizes", desc:"mm vs letter codes"}, {name:"Yarn Weights", desc:"Worsted vs DK"}] },
+                            { id: "hk2", title: "Grip & Posture", skills: [{name:"Knife vs Pen Grip", desc:"Find comfort"}, {name:"Tension Control", desc:"Consistent loops"}] }
+                        ],
+                        middle: { id: "hk_mid", title: "Stitch Lab", skills: [{name:"The Chain", desc:"Foundation chains"}, {name:"Single Crochet", desc:"Insert, YO, pull"}, {name:"Double Crochet", desc:"The taller stitch"}] },
+                        boss: { id: "hk_boss", title: "BOSS: Granny Square", skills: [{name:"Classic Square", desc:"3 rounds, corner clusters"}], isBoss: true }
+                    },
+                    tier2: {
+                        branches: [
+                            { 
+                                nodes: [ { id: "hk_ami", title: "Amigurumi", theme: "theme-med", skills: [{name:"Magic Ring", desc:"Tight start"}, {name:"Invisible Decrease", desc:"No gaps"}] } ],
+                                branches: [
+                                    { nodes: [{ id: "ami_adv", title: "Advanced Shaping", theme: "theme-hard", skills: [{name:"Oval Bases", desc:"Starting from a chain"}, {name:"Asymmetry", desc:"Cheeks and snouts"}] }] },
+                                    { nodes: [{ id: "ami_struct", title: "Structural Support", theme: "theme-hard", skills: [{name:"Wire Armatures", desc:"Poseable limbs"}, {name:"Weighted Bases", desc:"Poly-pellets for sitting"}] }] }
+                                ]
+                            },
+                            { 
+                                nodes: [ { id: "hk_tex", title: "Wearables", theme: "theme-med", skills: [{name:"Ribbing", desc:"Back loop only"}, {name:"Measurements", desc:"Checking gauge"}] } ],
+                                branches: [
+                                    { nodes: [{ id: "wear_sweater", title: "Sweater Construct", theme: "theme-hard", skills: [{name:"Top-Down Raglan", desc:"Seamless yoke"}, {name:"Seamed Panels", desc:"Mattress stitch join"}] }] },
+                                    { nodes: [{ id: "wear_socks", title: "Socks & Mittens", theme: "theme-hard", skills: [{name:"Heel Flaps", desc:"Turning the heel"}, {name:"Gussets", desc:"Picking up stitches"}] }] }
+                                ]
+                            }
+                        ]
+                    }
+                },
+                rightTree: {
+                    tier1: {
+                        layout: 'converge',
+                        roots: [
+                            { id: "pt1", title: "Reading Patterns", skills: [{name:"Abbreviations", desc:"SC, DC, CH, SLST"}, {name:"Diagrams", desc:"Read symbols"}] },
+                            { id: "pt2", title: "Finishing", skills: [{name:"Weaving Ends", desc:"Darning needle"}, {name:"Blocking", desc:"Steam or Wet block"}] }
+                        ],
+                        middle: { id: "pt_mid", title: "Color Work", skills: [{name:"Stripe Changes", desc:"Change on last pull"}, {name:"Carrying Yarn", desc:"Hide strand inside"}] },
+                        boss: { id: "pt_boss", title: "BOSS: Beanie Hat", skills: [{name:"Simple Beanie", desc:"In the round, closing top"}], isBoss: true }
+                    },
+                    tier2: {
+                        branches: [
+                            { 
+                                nodes: [ { id: "pt_lace", title: "Lace Work", theme: "theme-hard", skills: [{name:"Pineapple Stitch", desc:"Complex motif"}, {name:"Blocking Lace", desc:"Pinning points"}] } ],
+                                branches: [
+                                    { nodes: [{ id: "lace_join", title: "Joining Methods", theme: "theme-hard", skills: [{name:"Whip Stitch", desc:"Invisible seams"}, {name:"JAYG", desc:"Join-As-You-Go"}] }] },
+                                    { nodes: [{ id: "lace_thread", title: "Thread Crochet", theme: "theme-hard", skills: [{name:"Steel Hooks", desc:"Working with < 2mm"}, {name:"Doilies", desc:"Fine tension"}] }] }
+                                ]
+                            },
+                            { nodes: [{ id: "pt_tun", title: "Tunisian", theme: "theme-hard", skills: [{name:"Simple Stitch", desc:"Forward/Return pass"}, {name:"Honeycomb", desc:"Texture work"}] }] }
+                        ]
+                    }
+                }
+            },
+
+            cocktails: {
+                colors: { left: '#ab47bc', right: '#ffca28' }, 
+                name: "🍸 Mixology",
+                leftTree: {
+                    tier1: {
+                        layout: 'converge',
+                        roots: [
+                            { id: "mix_tools", title: "Bar Tools", skills: [{name:"The Shaker", desc:"Cobbler vs Boston"}, {name:"Jiggers", desc:"Accurate measuring"}] },
+                            { id: "mix_glass", title: "Glassware", skills: [{name:"The Coupe", desc:"Up drinks"}, {name:"The Rocks", desc:"Drinks on ice"}] }
+                        ],
+                        middle: { id: "mix_shake", title: "Shake & Strain", skills: [{name:"The Hard Shake", desc:"Aerating citrus"}, {name:"Double Strain", desc:"Catching ice chips"}] },
+                        boss: { id: "mix_boss1", title: "BOSS: The Margarita", skills: [{name:"Perfect Balance", desc:"Tequila, Lime, Agave/Cointreau"}], isBoss: true }
+                    },
+                    tier2: {
+                        branches: [
+                            { nodes: [{ id: "mix_syrups", title: "Syrups & Infusions", skills: [{name:"Simple Syrup", desc:"1:1 Sugar to Water"}, {name:"Oleo Saccharum", desc:"Extracting citrus oils"}] }] },
+                            { nodes: [{ id: "mix_foam", title: "Egg White Foams", skills: [{name:"Dry Shake", desc:"Emulsifying without ice"}, {name:"Reverse Dry Shake", desc:"Maximum foam texture"}] }] }
+                        ]
+                    }
+                },
+                rightTree: {
+                    tier1: {
+                        layout: 'converge',
+                        roots: [
+                            { id: "mix_spirit", title: "Spirits 101", skills: [{name:"Base Liquors", desc:"Gin, Whiskey, Rum"}, {name:"Modifiers", desc:"Liqueurs & Cordials"}] },
+                            { id: "mix_verm", title: "Vermouth & Amaro", skills: [{name:"Storage", desc:"Keep it in the fridge!"}, {name:"Flavor Profiles", desc:"Sweet vs Dry vs Bitter"}] }
+                        ],
+                        middle: { id: "mix_stir", title: "The Proper Stir", skills: [{name:"Bar Spoon Grip", desc:"Push/Pull method"}, {name:"Chilling & Dilution", desc:"Stirring for 30 seconds"}] },
+                        boss: { id: "mix_boss2", title: "BOSS: Old Fashioned", skills: [{name:"Classic Build", desc:"Sugar, Bitters, Bourbon, Ice"}], isBoss: true }
+                    },
+                    tier2: {
+                        branches: [
+                            { nodes: [{ id: "mix_ice", title: "Clear Ice", skills: [{name:"Directional Freezing", desc:"Using a small cooler"}, {name:"Ice Carving", desc:"Shaping cubes for the glass"}] }] },
+                            { nodes: [{ id: "mix_bitters", title: "Bitters & Tinctures", skills: [{name:"The Dasher", desc:"Adding aromatic depth"}, {name:"DIY Bitters", desc:"Steeping botanicals in high-proof"}] }] }
+                        ]
+                    }
+                }
+            },
+
+            mechanics: {
+                colors: { left: '#5c6bc0', right: '#8d6e63' }, 
+                name: "🔧 Auto Repair",
+                leftTree: {
+                    tier1: {
+                        layout: 'converge',
+                        roots: [
+                            { id: "auto_safe", title: "Safety & Lift", skills: [{name:"Jack & Stands", desc:"Never trust a hydraulic jack!"}, {name:"Chocks", desc:"Securing the wheels"}] },
+                            { id: "auto_tools", title: "Hand Tools", skills: [{name:"Socket Sets", desc:"Metric vs Standard"}, {name:"Torque Wrench", desc:"Tightening to spec"}] }
+                        ],
+                        middle: { id: "auto_fluids", title: "Fluid Checks", skills: [{name:"Engine Oil", desc:"Reading the dipstick"}, {name:"Coolant", desc:"Checking reservoir levels"}] },
+                        boss: { id: "auto_boss1", title: "BOSS: The Oil Change", skills: [{name:"Drain & Fill", desc:"Replace filter, add fresh oil"}], isBoss: true }
+                    },
+                    tier2: {
+                        branches: [
+                            { nodes: [{ id: "auto_brakes", title: "Brake Service", skills: [{name:"Pad Replacement", desc:"Compressing the caliper"}, {name:"Rotor Inspection", desc:"Checking for deep grooves"}] }] },
+                            { nodes: [{ id: "auto_tires", title: "Wheels & Tires", skills: [{name:"Tire Rotation", desc:"Front-to-back crossing patterns"}, {name:"Tread Depth", desc:"The penny test"}] }] }
+                        ]
+                    }
+                },
+                rightTree: {
+                    tier1: {
+                        layout: 'converge',
+                        roots: [
+                            { id: "auto_meter", title: "Multimeter Basics", skills: [{name:"Voltage Check", desc:"Testing 12V systems"}, {name:"Continuity", desc:"Testing broken wires"}] },
+                            { id: "auto_obd", title: "OBD2 Scanner", skills: [{name:"Reading Codes", desc:"Why is the check engine light on?"}, {name:"Clearing Codes", desc:"Resetting the ECU"}] }
+                        ],
+                        middle: { id: "auto_batt", title: "Power Systems", skills: [{name:"Terminal Cleaning", desc:"Removing acid corrosion"}, {name:"Alternator Test", desc:"Checking charge voltage running"}] },
+                        boss: { id: "auto_boss2", title: "BOSS: Dead Battery Jump", skills: [{name:"Safe Jumping", desc:"Red to Red, Black to Ground"}], isBoss: true }
+                    },
+                    tier2: {
+                        branches: [
+                            { nodes: [{ id: "auto_spark", title: "Ignition System", skills: [{name:"Spark Plugs", desc:"Gapping and anti-seize"}, {name:"Ignition Coils", desc:"Testing for misfires"}] }] },
+                            { nodes: [{ id: "auto_fuses", title: "Fuses & Relays", skills: [{name:"Fuse Box Map", desc:"Finding blown fuses"}, {name:"Parasitic Draw", desc:"Finding battery drains"}] }] }
+                        ]
+                    }
+                }
+            },
+
+            running: {
+                colors: { left: '#26a69a', right: '#ffa726' }, 
+                name: "🏃 Couch to 5K",
+                leftTree: {
+                    tier1: {
+                        layout: 'converge',
+                        roots: [
+                            { id: "run_shoes", title: "Footwear & Gear", skills: [{name:"Gait Analysis", desc:"Finding the right support"}, {name:"Anti-Chafe", desc:"Lubricating trouble spots"}] },
+                            { id: "run_warmup", title: "Pre-Run Prep", skills: [{name:"Dynamic Stretching", desc:"Leg swings & lunges"}, {name:"Activation", desc:"Waking up the glutes"}] }
+                        ],
+                        middle: { id: "run_pace", title: "Pacing & Breathing", skills: [{name:"Conversational Pace", desc:"Running slow to run fast"}, {name:"Cadence Focus", desc:"Taking quicker, shorter steps"}] },
+                        boss: { id: "run_boss1", title: "BOSS: Non-Stop 1 Mile", skills: [{name:"The First Mile", desc:"Pacing yourself perfectly"}], isBoss: true }
+                    },
+                    tier2: {
+                        branches: [
+                            { nodes: [{ id: "run_hills", title: "Strength & Power", skills: [{name:"Hill Repeats", desc:"Building leg drive"}, {name:"Strides", desc:"15-second speed bursts"}] }] },
+                            { nodes: [{ id: "run_form", title: "Form Optimization", skills: [{name:"Midfoot Strike", desc:"Avoiding heavy heel striking"}, {name:"Posture", desc:"Running tall, arms relaxed"}] }] }
+                        ]
+                    }
+                },
+                rightTree: {
+                    tier1: {
+                        layout: 'converge',
+                        roots: [
+                            { id: "run_hydrate", title: "Fuel & Hydration", skills: [{name:"Electrolytes", desc:"Sodium & Potassium"}, {name:"Pre-Run Snack", desc:"Simple carbs 30 mins prior"}] },
+                            { id: "run_cool", title: "Post-Run Recovery", skills: [{name:"Static Stretching", desc:"Holding poses for 30s"}, {name:"Foam Rolling", desc:"Releasing tight calves/IT bands"}] }
+                        ],
+                        middle: { id: "run_intervals", title: "Run/Walk Strategy", skills: [{name:"Galloway Method", desc:"Structured walk breaks"}, {name:"Heart Rate Zones", desc:"Staying in Zone 2"}] },
+                        boss: { id: "run_boss2", title: "BOSS: The 5K Finish", skills: [{name:"3.1 Miles Complete", desc:"Crossing the finish line!"}], isBoss: true }
+                    },
+                    tier2: {
+                        branches: [
+                            { nodes: [{ id: "run_long", title: "Endurance Building", skills: [{name:"The Long Run", desc:"Adding 10% distance weekly"}, {name:"Time on Feet", desc:"Ignoring pace, focusing on time"}] }] },
+                            { nodes: [{ id: "run_cross", title: "Cross Training", skills: [{name:"Core Strength", desc:"Planks & stability"}, {name:"Cycling/Swimming", desc:"Low-impact cardio"}] }] }
+                        ]
+                    }
+                }
+            },
+
+            photography: {
+                colors: { left: '#42a5f5', right: '#7e57c2' }, 
+                name: "📷 Photography",
+                leftTree: {
+                    tier1: {
+                        layout: 'converge',
+                        roots: [
+                            { id: "photo_aperture", title: "Aperture (f-stop)", skills: [{name:"Depth of Field", desc:"Blurring the background"}, {name:"Lens Speed", desc:"Shooting wide open (f/1.8)"}] },
+                            { id: "photo_shutter", title: "Shutter Speed", skills: [{name:"Freezing Action", desc:"Shooting at 1/1000s"}, {name:"Motion Blur", desc:"Capturing waterfalls (1/2s)"}] }
+                        ],
+                        middle: { id: "photo_iso", title: "ISO & Exposure", skills: [{name:"Sensor Sensitivity", desc:"Balancing ISO with noise"}, {name:"The Light Meter", desc:"Reading the in-camera meter"}] },
+                        boss: { id: "photo_boss1", title: "BOSS: Full Manual Mode", skills: [{name:"The Triangle", desc:"Balancing Aperture, Shutter, and ISO"}], isBoss: true }
+                    },
+                    tier2: {
+                        branches: [
+                            { nodes: [{ id: "photo_night", title: "Low Light Mastery", skills: [{name:"Tripod Usage", desc:"Turning off Image Stabilization"}, {name:"Long Exposures", desc:"Light trails and starscapes"}] }] },
+                            { nodes: [{ id: "photo_action", title: "Action & Sports", skills: [{name:"Continuous Focus (AF-C)", desc:"Tracking moving subjects"}, {name:"Panning", desc:"Moving camera with the subject"}] }] }
+                        ]
+                    }
+                },
+                rightTree: {
+                    tier1: {
+                        layout: 'converge',
+                        roots: [
+                            { id: "photo_comp", title: "Composition Basics", skills: [{name:"Rule of Thirds", desc:"Placing subjects on intersections"}, {name:"Leading Lines", desc:"Drawing the viewer's eye"}] },
+                            { id: "photo_light", title: "Finding Light", skills: [{name:"Golden Hour", desc:"Soft, warm directional light"}, {name:"Window Light", desc:"Softbox effect indoors"}] }
+                        ],
+                        middle: { id: "photo_focal", title: "Focal Lengths", skills: [{name:"Wide Angle (16-35mm)", desc:"Exaggerating perspective"}, {name:"Portrait (85mm)", desc:"Flattering compression"}] },
+                        boss: { id: "photo_boss2", title: "BOSS: The Perfect Portrait", skills: [{name:"Catchlights & Bokeh", desc:"Eyes in focus, background soft"}], isBoss: true }
+                    },
+                    tier2: {
+                        branches: [
+                            { nodes: [{ id: "photo_raw", title: "RAW Processing", skills: [{name:"White Balance", desc:"Fixing color temperature"}, {name:"Highlight Recovery", desc:"Saving blown-out skies"}] }] },
+                            { nodes: [{ id: "photo_color", title: "Color Grading", skills: [{name:"Split Toning", desc:"Cool shadows, warm highlights"}, {name:"HSL Sliders", desc:"Targeting specific colors"}] }] }
+                        ]
+                    }
+                }
+            },
+
+            calligraphy: {
+                colors: { left: '#d4e157', right: '#ec407a' }, 
+                name: "🖋️ Calligraphy",
+                leftTree: {
+                    tier1: {
+                        layout: 'converge',
+                        roots: [
+                            { id: "cal_pen", title: "Pointed Pen Prep", skills: [{name:"Oblique Holders", desc:"Finding the right grip angle"}, {name:"Preparing Nibs", desc:"Burning off factory oils"}] },
+                            { id: "cal_ink", title: "Ink & Paper", skills: [{name:"Ink Consistency", desc:"Adding water or gum arabic"}, {name:"Paper Bleed", desc:"Choosing smooth layouts"}] }
+                        ],
+                        middle: { id: "cal_strokes", title: "Fundamental Strokes", skills: [{name:"Upstrokes", desc:"Light pressure, thin hairlines"}, {name:"Downstrokes", desc:"Heavy pressure, thick swells"}] },
+                        boss: { id: "cal_boss1", title: "BOSS: The Minuscules", skills: [{name:"Lowercase Alphabet", desc:"Consistent slant and spacing"}], isBoss: true }
+                    },
+                    tier2: {
+                        branches: [
+                            { nodes: [{ id: "cal_maj", title: "The Majuscules", skills: [{name:"Capital Letters", desc:"Complex entry strokes"}, {name:"Stem Shades", desc:"The core vertical pillar"}] }] },
+                            { nodes: [{ id: "cal_flour", title: "Flourishing", skills: [{name:"Ovals & Spirals", desc:"Building muscle memory"}, {name:"Visual Balance", desc:"Knowing when to stop"}] }] }
+                        ]
+                    }
+                },
+                rightTree: {
+                    tier1: {
+                        layout: 'converge',
+                        roots: [
+                            { id: "cal_brush", title: "Brush Pens", skills: [{name:"Felt vs Synthetic Hair", desc:"Finding your flexibility"}, {name:"Pen Angle", desc:"Holding it at 45 degrees"}] },
+                            { id: "cal_guide", title: "Guidelines", skills: [{name:"Baseline & X-Height", desc:"Keeping letters uniform"}, {name:"Slant Lines", desc:"Maintaining 55-degree tilt"}] }
+                        ],
+                        middle: { id: "cal_connect", title: "Connections", skills: [{name:"Entrance Strokes", desc:"Starting from the baseline"}, {name:"Exit Strokes", desc:"Leading into the next letter"}] },
+                        boss: { id: "cal_boss2", title: "BOSS: The First Word", skills: [{name:"Fluid Script", desc:"Write 'minimum' seamlessly"}], isBoss: true }
+                    },
+                    tier2: {
+                        branches: [
+                            { nodes: [{ id: "cal_bounce", title: "Modern Style", skills: [{name:"Bouncing Baseline", desc:"Breaking the rules rhythmically"}, {name:"Extended Loops", desc:"Exaggerated ascenders/descenders"}] }] },
+                            { nodes: [{ id: "cal_blend", title: "Color & Blending", skills: [{name:"Ombre Effects", desc:"Kissing marker tips together"}, {name:"Water Brushes", desc:"Creating watercolor fades"}] }] }
+                        ]
+                    }
+                }
+            }
+        };
+
+        let currentProjectKey = 'kitchen';
+        let state = JSON.parse(localStorage.getItem('skillTree_proto_v5')) || {};
+        let pendingTask = null;
+        let currentZoom = 1.0; 
+        let panX = 0, panY = 0;
+        let activeIndex = 0; 
+
+        function save() { localStorage.setItem('skillTree_proto_v5', JSON.stringify(state)); render(); }
+        function resetData() { if(confirm("Reset progress for this project?")) { state = {}; save(); } }
+
+        // --- STAR MATH ---
+        function getEarnedStars(node) {
+            if(!node || !node.skills) return 0;
+            return node.skills.reduce((sum, s) => {
+                const key = node.id + "_" + s.name + "_rating";
+                return sum + (state[key] || 0);
+            }, 0);
+        }
+
+        function isNodePassed(node) {
+            if(!node || !node.skills) return true;
+            const earned = getEarnedStars(node);
+            const req = node.passReq || (node.skills.length * 5);
+            return earned >= req;
+        }
+
+        // --- CAMERA ENGINE ---
+        function updateTransform(smooth = false) {
+            const forest = document.getElementById('forest-container');
+            forest.style.transition = smooth ? 'transform 0.4s cubic-bezier(0.25, 1, 0.5, 1)' : 'none';
+            forest.style.transform = `translateX(${panX}px) translateY(${panY}px) scale(${currentZoom})`;
+        }
+
+        function changeZoom(amount) {
+            currentZoom += amount;
+            if (currentZoom < 0.2) currentZoom = 0.2;
+            if (currentZoom > 2) currentZoom = 2;
+            updateTransform(true);
+        }
+
+        function centerCamera() {
+            panY = 0; currentZoom = 1.0; 
+            centerOnPillar(activeIndex, true);
+        }
+        
+        function resetCamera() {
+            panY = 0; currentZoom = 1.0; activeIndex = 0;
+            render();
+            setTimeout(() => { centerOnPillar(0, false); }, 50);
+        }
+
+        function centerOnPillar(index, smooth = true) {
+            const pillars = document.querySelectorAll('.parallel-col');
+            if (!pillars[index]) return;
+            activeIndex = index;
+
+            pillars.forEach((p, i) => {
+                const isActive = i === activeIndex;
+                p.classList.toggle('active-pillar', isActive);
+                p.classList.toggle('inactive-pillar', !isActive);
+                if(p.dataset.lastActiveState !== String(isActive)) {
+                    p.dataset.lastActiveState = String(isActive);
+                    recalculateFogForPillar(p);
+                }
+            });
+
+            void document.body.offsetHeight;
+            
+            const targetPillar = pillars[activeIndex];
+            // Fix: Shift the absolute origin by the exact center of the pillar
+            panX = -(targetPillar.offsetLeft + targetPillar.offsetWidth / 2);
+            updateTransform(smooth);
+            
+            document.getElementById('navLeft').style.display = activeIndex === 0 ? 'none' : 'flex';
+            document.getElementById('navRight').style.display = activeIndex === pillars.length - 1 ? 'none' : 'flex';
+        }
+
+        function slideCarousel(direction) {
+            const pillars = document.querySelectorAll('.parallel-col');
+            let targetIdx = activeIndex + direction;
+            if (targetIdx >= 0 && targetIdx < pillars.length && targetIdx !== activeIndex) {
+                centerOnPillar(targetIdx, true);
+            }
+        }
+
+        // --- MENU LOGIC ---
+        function startJourney() {
+            currentProjectKey = document.getElementById('mainMenuSelect').value;
+            document.getElementById('appMenuSelect').value = currentProjectKey;
+            
+            document.getElementById('landingMenu').classList.add('hidden');
+            const app = document.getElementById('appContainer');
+            app.style.display = 'flex';
+            setTimeout(() => {
+                app.classList.add('visible');
+                resetCamera(); 
+            }, 50);
+        }
+
+        function switchProjectFromApp() {
+            currentProjectKey = document.getElementById('appMenuSelect').value;
+            document.getElementById('mainMenuSelect').value = currentProjectKey;
+            resetCamera();
+        }
+
+        function returnToMenu() {
+            document.getElementById('appContainer').classList.remove('visible');
+            setTimeout(() => {
+                document.getElementById('appContainer').style.display = 'none';
+                document.getElementById('landingMenu').classList.remove('hidden');
+            }, 400); 
+        }
+
+        function openFAQ() { document.getElementById('faqModal').style.display = 'flex'; }
+
+        // --- RATINGS ---
+        function attemptToggle(key, event) {
+            pendingTask = { type: 'checkbox', key: key };
+            openRatingModal(event);
+        }
+
+        function openRatingModal(event) {
+            document.querySelectorAll('input[name="rating"]').forEach(r => r.checked = false);
+            const color = projectLibrary[currentProjectKey].colors.left;
+            document.getElementById('ratingTitle').style.color = color;
+            
+            const modal = document.getElementById('ratingModal');
+            const popup = modal.querySelector('.modal-content');
+            popup.style.borderColor = color;
+            modal.style.display = 'block'; 
+
+            const rect = event.currentTarget.getBoundingClientRect();
+            popup.style.top = `${rect.top - 185}px`;
+            popup.style.left = `${rect.left + rect.width / 2 - 145}px`;
+        }
+
+        function submitRating(stars) {
+            state[pendingTask.key + "_rating"] = stars;
+            state[pendingTask.key] = true; 
+            pendingTask = null; 
+            closeModal('ratingModal');
+            save(); 
+        }
+
+        function clearRating() {
+            state[pendingTask.key] = false;
+            delete state[pendingTask.key + "_rating"];
+            pendingTask = null;
+            closeModal('ratingModal');
+            save();
+        }
+
+        function cancelRating(event) {
+            if (event && event.target.id !== 'ratingModal') return;
+            pendingTask = null;
+            closeModal('ratingModal');
+            render(); 
+        }
+
+        function openGuide(title, htmlContent) {
+            document.getElementById('modalTitle').innerText = title;
+            document.getElementById('modalBody').innerHTML = htmlContent;
+            document.getElementById('modalTitle').style.color = projectLibrary[currentProjectKey].colors.left;
+            document.querySelector('#guideModal .modal-content').style.borderTopColor = projectLibrary[currentProjectKey].colors.left;
+            document.getElementById('guideModal').style.display = 'flex';
+        }
+
+        function closeModal(modalId, event) {
+            if (event && event.target.id !== modalId) return;
+            document.getElementById(modalId).style.display = 'none';
+        }
+
+        // --- RENDER ENGINE ---
+        function render() {
+            const project = projectLibrary[currentProjectKey];
+            const container = document.getElementById('forest-container');
+            container.innerHTML = ''; 
+            document.documentElement.style.setProperty('--theme-left', project.colors.left);
+            
+            const pRow = document.createElement('div');
+            pRow.className = 'parallel-row';
+
+            if (project.leftTree) renderTreeColumn(pRow, project.leftTree, 'theme-left');
+            if (project.rightTree) renderTreeColumn(pRow, project.rightTree, 'theme-right');
+            
+            container.appendChild(pRow);
+            centerOnPillar(activeIndex, false); 
+        }
+
+        function renderTreeColumn(container, treeData, theme) {
+            if (treeData.tier1.layout === 'parallel') {
+                treeData.tier1.paths.forEach((pathData) => {
+                    const col = document.createElement('div');
+                    col.className = 'parallel-col inactive-pillar';
+                    let frontlineDist = 0; 
+
+                    const rootWrapper = document.createElement('div');
+                    rootWrapper.className = 'root-node-wrapper';
+                    rootWrapper.addEventListener('click', () => {
+                        const pillars = Array.from(document.querySelectorAll('.parallel-col'));
+                        const idx = pillars.indexOf(col);
+                        if(idx !== activeIndex) centerOnPillar(idx, true);
+                    });
+
+                    const upperWrapper = document.createElement('div');
+                    upperWrapper.className = 'upper-branches';
+
+                    pathData.nodes.forEach((node, nodeIdx) => {
+                        const isPassed = isNodePassed(node);
+                        let myDist = isPassed ? -1 : frontlineDist;
+                        if (!isPassed) frontlineDist++;
+
+                        const parentNode = nodeIdx > 0 ? pathData.nodes[nodeIdx - 1] : null;
+                        const card = createCard(node, pathData.theme || theme, myDist, parentNode);
+                        
+                        if (nodeIdx === 0) rootWrapper.appendChild(card);
+                        else { card.classList.add('stacked-node'); upperWrapper.appendChild(card); }
+                    });
+                    
+                    if (pathData.branches) {
+                        const parentNode = pathData.nodes[pathData.nodes.length - 1]; 
+                        const branchTree = renderBranchesRecursively(pathData.branches, pathData.theme || theme, frontlineDist, parentNode);
+                        upperWrapper.appendChild(branchTree);
+                    }
+                    
+                    col.appendChild(rootWrapper);
+                    col.appendChild(upperWrapper);
+                    container.appendChild(col);
+                });
+            } 
+            else if (treeData.tier1.layout === 'converge') {
+                const col = document.createElement('div');
+                col.className = 'parallel-col inactive-pillar';
+                
+                let frontlineDist = 0;
+                const rootsComplete = treeData.tier1.roots.every(r => isNodePassed(r));
+
+                const rootWrapper = document.createElement('div');
+                rootWrapper.className = 'root-node-wrapper foundation-row';
+                rootWrapper.addEventListener('click', () => {
+                    const pillars = Array.from(document.querySelectorAll('.parallel-col'));
+                    const idx = pillars.indexOf(col);
+                    if(idx !== activeIndex) centerOnPillar(idx, true);
+                });
+                
+                treeData.tier1.roots.forEach(node => { 
+                    let myDist = isNodePassed(node) ? -1 : 0;
+                    rootWrapper.appendChild(createCard(node, theme, myDist, null)); 
+                });
+
+                if (!rootsComplete) frontlineDist++;
+
+                const upperWrapper = document.createElement('div');
+                upperWrapper.className = 'upper-branches';
+
+                const middleNode = treeData.tier1.middle;
+                const middleComplete = isNodePassed(middleNode);
+                let midDist = middleComplete ? -1 : frontlineDist;
+                if (!middleComplete) frontlineDist++;
+
+                const midCard = createCard(middleNode, theme, midDist, treeData.tier1.roots[0]);
+                midCard.classList.add('stacked-node');
+                upperWrapper.appendChild(midCard);
+
+                const bossNode = treeData.tier1.boss;
+                const bossComplete = isNodePassed(bossNode);
+                let bossDist = bossComplete ? -1 : frontlineDist;
+                if (!bossComplete) frontlineDist++;
+
+                const bossCard = createCard(bossNode, theme, bossDist, middleNode);
+                bossCard.classList.add('stacked-node');
+                upperWrapper.appendChild(bossCard);
+                
+                if (treeData.tier2) {
+                    const branchTree = renderBranchesRecursively(treeData.tier2.branches, theme, frontlineDist, bossNode);
+                    upperWrapper.appendChild(branchTree);
+                }
+                
+                col.appendChild(rootWrapper);
+                col.appendChild(upperWrapper);
+                container.appendChild(col);
+            }
+        }
+
+        function renderBranchesRecursively(branches, theme, frontlineDist, parentNode) {
+            const row = document.createElement('div');
+            row.className = `branch-row ${theme}`;
+            
+            branches.forEach(b => {
+                const col = document.createElement('div');
+                col.className = `branch-col`;
+                
+                let currentDist = frontlineDist;
+                const nodesToRender = b.nodes || [b];
+                
+                nodesToRender.forEach((node, idx) => {
+                    const isPassed = isNodePassed(node);
+                    let myDist = isPassed ? -1 : currentDist;
+                    if (!isPassed) currentDist++;
+                    
+                    const myParent = idx > 0 ? nodesToRender[idx - 1] : parentNode;
+                    const card = createCard(node, b.theme || theme, myDist, myParent);
+                    if (idx > 0) card.classList.add('stacked-node');
+                    col.appendChild(card);
+                });
+                
+                if (b.branches || b.subBranches) {
+                    const nextBranches = b.branches || b.subBranches;
+                    const myLastNode = nodesToRender[nodesToRender.length - 1];
+                    const subRow = renderBranchesRecursively(nextBranches, b.theme || theme, currentDist, myLastNode);
+                    col.appendChild(subRow);
+                }
+                row.appendChild(col);
+            });
+            return row;
+        }
+
+        function createCard(node, theme, dist, parentNode) {
+            const cardTheme = node.theme || theme; 
+            const isGatewayOrBoss = node.isBoss || node.isGateway;
+            
+            let distClass = '';
+            if (dist === -1) distClass = 'dist-completed';
+            else if (dist === 0) distClass = 'dist-playable';
+            else if (dist === 1) distClass = 'dist-locked-1';
+            else if (dist === 2) distClass = 'dist-locked-2';
+            else if (dist >= 3) distClass = 'dist-locked-3';
+            
+            const div = document.createElement('div');
+            div.className = `node-card ${cardTheme} ${isGatewayOrBoss ? 'gateway-card' : ''} ${distClass}`;
+            
+            if (isGatewayOrBoss && dist === -1) div.classList.add('unlocked-boss');
+
+            let badgeHtml = '';
+            if (dist === 1 && parentNode) {
+                const earned = getEarnedStars(parentNode);
+                const req = parentNode.passReq || ((parentNode.skills || []).length * 5);
+                badgeHtml = `<div class="lock-badge">🔒 ${earned} / ${req} ⭐</div>`;
+            }
+
+            const skills = node.skills || [];
+            const skillsHtml = skills.map(s => {
+                const key = node.id + "_" + s.name;
+                const val = state[key] || 0;
+                const ratingVal = state[key + "_rating"]; 
+
+                const checked = (val === true) ? 'checked' : '';
+                const control = `<input type="checkbox" ${checked} onchange="attemptToggle('${key}', event)">`;
+
+                let guideHtml = '';
+                if (s.instructions) {
+                    const safeHTML = s.instructions.replace(/"/g, '&quot;').replace(/'/g, "\\'").replace(/(\r\n|\n|\r)/gm, "");
+                    guideHtml = `<span class="guide-icon" onclick="openGuide('${s.name}', '${safeHTML}')">📖</span>`;
+                }
+                
+                let starsStr = '';
+                if (ratingVal) {
+                    for (let i = 1; i <= 5; i++) {
+                        starsStr += `<span class="star-${(i <= ratingVal) ? 'filled' : 'empty'}">★</span>`;
+                    }
+                }
+
+                return `
+                    <div class="skill-group">
+                        <div class="skill-header">
+                            <div class="skill-name-wrapper"><span class="skill-name">${s.name}</span>${guideHtml}</div>
+                            ${control}
+                        </div>
+                        <div class="task-rating-display">${starsStr}</div>
+                        <span class="skill-desc">${s.desc}</span>
+                    </div>
+                `;
+            }).join('');
+
+            div.innerHTML = `${badgeHtml}<div class="title">${node.title}</div>${skillsHtml}`;
+            return div;
+        }
+
+        function recalculateFogForPillar(pillarCol) {
+            const isActive = pillarCol.classList.contains('active-pillar');
+            let frontlineDist = 0; 
+
+            const rootCard = pillarCol.querySelector('.root-node-wrapper > .node-card');
+            if(rootCard) {
+                 if(!rootCard.classList.contains('dist-completed')) {
+                     applyFogToCard(rootCard, 0, isActive);
+                     frontlineDist = 1;
+                 }
+            }
+
+            pillarCol.querySelectorAll('.upper-branches .node-card, .branch-row .node-card').forEach(card => {
+                if(!card.classList.contains('dist-completed')) {
+                    applyFogToCard(card, frontlineDist, isActive);
+                    if(!card.closest('.branch-row')) frontlineDist++;
+                }
+            });
+        }
+
+        function applyFogToCard(card, dist, isActive) {
+            const finalDist = isActive ? dist : (dist + 3); 
+            card.classList.toggle('dist-playable', finalDist === 0);
+            card.classList.toggle('dist-locked-1', finalDist === 1);
+            card.classList.toggle('dist-locked-2', finalDist === 2);
+            card.classList.toggle('dist-locked-3', finalDist >= 3);
+        }
+
+        // --- INFINITE CANVAS DRAG & DROP ENGINE ---
+        const viewport = document.getElementById('viewport');
+        let isDragging = false, dragStartX, dragStartY, initialPanY;
+
+        viewport.addEventListener('mousedown', (e) => {
+            if(e.target.closest('.node-card') || e.target.closest('.modal-content') || e.target.closest('.floating-controls') || e.target.closest('.nav-arrow') || e.target.closest('.app-header')) return;
+            isDragging = true; dragStartX = e.clientX; dragStartY = e.clientY; initialPanY = panY;
+            viewport.style.cursor = 'grabbing'; closeModal('ratingModal');
+        });
+
+        window.addEventListener('mousemove', (e) => { 
+            if (!isDragging) return; e.preventDefault();
+            panY = initialPanY + (e.clientY - dragStartY);
+            if (panY < 0) panY = 0; 
+            updateTransform(false); 
+        });
+
+        window.addEventListener('mouseup', (e) => { 
+            if (!isDragging) return;
+            isDragging = false; viewport.style.cursor = 'grab'; 
+            let deltaX = e.clientX - dragStartX;
+            if (deltaX > 50) slideCarousel(-1);
+            else if (deltaX < -50) slideCarousel(1);
+            else updateTransform(true);
+        });
+
+        let touchStartX, touchStartY, touchInitialPanY;
+        viewport.addEventListener('touchstart', (e) => {
+            if(e.target.closest('.node-card') || e.target.closest('.modal-content') || e.target.closest('.floating-controls') || e.target.closest('.nav-arrow') || e.target.closest('.app-header')) return;
+            if(e.touches.length === 1) {
+                isDragging = true; closeModal('ratingModal');
+                touchStartX = e.touches[0].clientX; touchStartY = e.touches[0].clientY; touchInitialPanY = panY;
+            }
+        }, {passive: false});
+
+        window.addEventListener('touchmove', (e) => { 
+            if (isDragging && e.touches.length === 1) { 
+                e.preventDefault(); 
+                panY = touchInitialPanY + (e.touches[0].clientY - touchStartY);
+                if (panY < 0) panY = 0; updateTransform(false); 
+            } 
+        }, {passive: false});
+
+        window.addEventListener('touchend', (e) => { 
+            if (!isDragging) return;
+            isDragging = false;
+            let deltaX = e.changedTouches[0].clientX - touchStartX;
+            if (deltaX > 50) slideCarousel(-1);
+            else if (deltaX < -50) slideCarousel(1);
+            else updateTransform(true);
+        });
+
+        // Initial Boot
+        resetCamera();
+
+    </script>
+</body>
+</html>
